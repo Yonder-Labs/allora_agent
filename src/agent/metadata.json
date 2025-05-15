@@ -1,7 +1,7 @@
 {
-  "name": "mindshare_agent",
+  "name": "allora_price_inference_agent",
   "version": "0.0.1",
-  "description": "Agent that use kaito api to get mindshare of some assets and suggest trading decisions",
+  "description": "Agent that use kaito api to get allora price inference prediction of some assets and suggest trading decisions",
   "category": "agent",
   "tags": [],
   "details": {

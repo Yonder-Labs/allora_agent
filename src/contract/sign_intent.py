@@ -217,7 +217,7 @@ class SignIntentContract:
                 self.contract_id,
                 "register_worker",
                 {
-                    "quote_hex": quote_hex,
+                    "quote_hex": quote_hex['QUOTE_HEX'],
                     "collateral": json.dumps(quote_collateral),
                     "checksum": checksum,
                     "tcb_info": json.dumps(tcb_info)

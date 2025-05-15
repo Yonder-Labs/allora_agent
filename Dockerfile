@@ -19,7 +19,13 @@ RUN pip install --upgrade pip setuptools wheel
 
 # Copy and install requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN grep -v "allora-sdk" requirements.txt > requirements_no_allora.txt
+
+# Install requirements without allora-sdk
+RUN pip install --no-cache-dir -r requirements_no_allora.txt
+
+# Install allora-sdk separately
+RUN pip install allora-sdk==0.2.2
 
 # Copy source code
 COPY src/ ./src/

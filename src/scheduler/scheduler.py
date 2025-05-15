@@ -35,7 +35,6 @@ class MindshareScheduler:
     def __init__(self, interval=300):
         self.interval = interval
         self.agent_path = AGENT_PATH
-        self.api_key = os.getenv('KAITO_API_KEY')
         self.account_id = os.getenv('INTENT_ACCOUNT_ID')
         self.private_key = os.getenv('INTENT_PRIVATE_KEY')
         self.network = os.getenv('NETWORK')
@@ -53,7 +52,7 @@ class MindshareScheduler:
         
         # Configure file handler with daily rotation
         file_handler = TimedRotatingFileHandler(
-            f'logs/mindshare.{current_date}.log',
+            f'logs/allora.{current_date}.log',
             when='midnight',     # Rotate at midnight
             interval=1,          # Rotate every day
             backupCount=2,       # Keep 2 backups
@@ -73,7 +72,7 @@ class MindshareScheduler:
 
     async def setup(self, max_attempts=3, retry_delay=10):
         """Initialize everything in the correct order with retries"""
-        self.logger.info("Setting up mindshare agent...")
+        self.logger.info("Setting up allora agent...")
         for attempt in range(max_attempts):
             try:
                 account_id = None
@@ -264,34 +263,42 @@ class MindshareScheduler:
 
     async def execute_agent(self):
         """Execute agent with retries if no trades are found"""
-        self.logger.info("Executing mindshare agent...")
+        self.logger.info("Executing allora agent...")
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                print(f"\nExecuting mindshare agent... (Attempt {attempt + 1}/{max_retries})")
-                self.logger.debug(f"\nExecuting mindshare agent... (Attempt {attempt + 1}/{max_retries})")
+                print(f"\nExecuting allora agent... (Attempt {attempt + 1}/{max_retries})")
+                self.logger.debug(f"\nExecuting allora agent... (Attempt {attempt + 1}/{max_retries})")
                 env_vars = {
-                    "KAITO_API_KEY": self.api_key,
                     "ACCOUNT_ID": self.account_id,
                     "PRIVATE_KEY": self.private_key,
                     "NETWORK": self.network,
-                    "DEBUG": "false"
+                    "DEBUG": "true"
                 }
                 
-                command = [
-                    "nearai",
-                    "agent",
-                    "task",
+                command = "nearai agent task {} \"According to my current token balances, evaluate the allora price inference of them, suggest me trading decision (hold, sell, buy) and how to rebalance my portfolio, remember that the user's balance is limited and you need to consider the fees.\" --local --env_vars '{}'".format(
                     self.agent_path,
-                    "According to my current token balances, evaluate the mindshare of them, suggest me trading decision (hold, sell, buy) and how to rebalance my portfolio, remember that the user's balance is limited and you need to consider the fees.",
-                    "--local",
-                    "--env_vars",  
-                    json.dumps(env_vars)  
-                ]
+                    json.dumps(env_vars)
+                )
                 
-                #print("\n[LOG] Executing command:", " ".join(command))
+                #print("\n[LOG] Executing command:", command)
                 
-                result = subprocess.run(command, capture_output=True, text=True)
+                # Execute command and handle output
+                try:
+                    result = subprocess.run(
+                        command,
+                        capture_output=True,
+                        text=True,
+                        check=True,  # This will raise an exception if the command fails
+                        shell=True    # Use shell to handle the command string properly
+                    )
+                    if result.stderr:
+                        print("[WARNING] stderr:", result.stderr)
+                except subprocess.CalledProcessError as e:
+                    print("[ERROR] Command failed with exit code:", e.returncode)
+                    print("[ERROR] stdout:", e.stdout)
+                    print("[ERROR] stderr:", e.stderr)
+                    raise e
                 
                 if result.returncode == 0:
                     print("\nAgent executed successfully")
@@ -420,7 +427,7 @@ def near_to_eth_public_key(near_public_key: str) -> bytes:
 def verify_signature(payload: dict, signature: dict) -> bool:
     """Verify signature of payload"""
     # Get SIGNER_PUBLIC_KEY from environment variables
-    SIGNER_PUBLIC_KEY = os.getenv('SIGNER_PUBLIC_KEY_USING_MINDSHARE_ACCOUNT')
+    SIGNER_PUBLIC_KEY = os.getenv('SIGNER_PUBLIC_KEY_USING_ALLORA_ACCOUNT')
     if not SIGNER_PUBLIC_KEY:
         raise ValueError("SIGNER_PUBLIC_KEY environment variable is not set")
     
@@ -449,16 +456,15 @@ def validate_env_vars():
     
     required_vars = {
         # Scheduler vars
-        'KAITO_API_KEY': 'API key for Kaito service',
         'INTENT_ACCOUNT_ID': 'Account ID for intents',
         'INTENT_PRIVATE_KEY': 'Private key for intents',
         'NETWORK': 'Network to use (mainnet/testnet)',
         'SCHEDULE_INTERVAL': 'Interval for scheduler execution',
-        'USE_MOCK_MINDSHARE': 'Whether to use mock mindshare',
+        
         # Contract vars
         'SIGN_INTENT_CONTRACT': 'Contract ID for signing intents',
         'USE_STATIC_ACCOUNT': 'Whether to use static account',
-        'SIGNER_PUBLIC_KEY_USING_MINDSHARE_ACCOUNT': 'Public key for signature verification',
+        'SIGNER_PUBLIC_KEY_USING_ALLORA_ACCOUNT': 'Public key for signature verification',
     }
     
     missing_vars = []
